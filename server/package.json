@@ -5,21 +5,23 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "babel server.js --out-dir",
-    "dev-start": "babel-watch server.js --watch src"
+    "clean": "rm -rf ./build && mkdir ./build",
+    "build-server": "babel ./server.js --out-dir ./build -s",
+    "build-src": "babel src --out-dir ./build/src -s",
+    "build": "npm run clean && npm run build-server && npm run build-src",
+    "start": "node ./build/server.js"
   },
   "author": "Emmet Murray",
   "license": "ISC",
   "devDependencies": {
-    "babel-cli": "^6.26.0",
-    "babel-core": "^6.26.3",
-    "babel-loader": "^8.0.5",
-    "babel-plugin-async-to-promises": "^1.0.5",
-    "babel-preset-env": "^1.7.0",
-    "babel-watch": "^2.0.8"
+    "@babel/cli": "^7.0.0",
+    "@babel/core": "^7.0.0",
+    "@babel/preset-env": "^7.0.0"
   },
   "dependencies": {
+    "@babel/polyfill": "^7.2.5",
     "axios": "^0.18.0",
+    "cors": "^2.8.5",
     "express": "^4.16.4",
     "pg": "^7.8.0"
   }

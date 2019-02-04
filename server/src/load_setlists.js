@@ -1,10 +1,8 @@
 import axios from 'axios';
-import {ApiKey, DbConfig, DbPassword} from "./keys";
-import {Client} from 'pg';
+import {ApiKey} from "./keys";
 
 
-function loadSetlists(mbid) {
-    console.log("Start");
+function loadSetlists(mbid, pool) {
     const setlistFm = axios.create({
         baseURL: 'https://api.setlist.fm/rest/1.0/artist/' + mbid + "/setlists",
         headers: {
@@ -15,7 +13,7 @@ function loadSetlists(mbid) {
 
     function addSetlists(newSetlists) {
         if (newSetlists) {
-            insertSetlistsIntoDatabase(newSetlists);
+            insertSetlistsIntoDatabase(newSetlists, pool);
         }
     }
 
@@ -24,9 +22,9 @@ function loadSetlists(mbid) {
         const itemsPerPage = response.data.itemsPerPage;
         const total = response.data.total;
 
-        addSetlists(setlists.slice(0, 1));
+        addSetlists(setlists);
 
-        /*const lastPage = Math.ceil(total / itemsPerPage);
+        const lastPage = Math.ceil(total / itemsPerPage);
         let currentPage = 2;
         if (lastPage) {
             const handleError = () => {
@@ -43,12 +41,12 @@ function loadSetlists(mbid) {
                     .catch((err) => handleError(err));
                 currentPage += 1;
             }, 500);
-        }*/
+        }
     }).catch((error) => console.log(error));
 }
 
 
-function insertSetlistsIntoDatabase(setlists) {
+function insertSetlistsIntoDatabase(setlists, pool) {
     const handleError = (err) => {
         console.log(err);
     };
@@ -56,14 +54,15 @@ function insertSetlistsIntoDatabase(setlists) {
     setlists.forEach((setlist) => {
         const artist = setlist.artist;
         const currentArtistId = artist.mbid;
-        insertIntoTable("Artist", [artist.mbid, artist.name, artist.sortName, artist.tmid]).then(() => {
+        console.log(setlist.id);
+        insertIntoTable("Artist", [artist.mbid, artist.name, artist.sortName, artist.tmid], pool).then(() => {
             const city = setlist.venue.city;
             const coordinates = city.coords;
             const country = city.country;
             insertIntoTable("City", [city.id, city.name, city.state, city.stateCode,
-                    coordinates.long, coordinates.lat, country.code, country.name]).then(() => {
+                    coordinates.long, coordinates.lat, country.code, country.name], pool).then(() => {
                 const venue = setlist.venue;
-                insertIntoTable("Venue", [venue.id, venue.name, city.id]).catch(handleError);
+                insertIntoTable("Venue", [venue.id, venue.name, city.id], pool).catch(handleError);
 
                 const sets = setlist.sets.set;
                 if (sets) {
@@ -73,7 +72,7 @@ function insertSetlistsIntoDatabase(setlists) {
 
                     const songToSongId = (song) => {
                         const name = song.name;
-                        return artistId() + "==" + name;
+                        return artistId(song) + "==" + name;
                     };
 
                     const setlist_songs = [];
@@ -90,25 +89,42 @@ function insertSetlistsIntoDatabase(setlists) {
                             setlist_songs_infos.push(set.song.map(song => song.info))
                         }
 
+                        let maxLength = 0;
+                        setlist_songs.forEach(set_songs => {
+                            if (set_songs.length > maxLength) {
+                                maxLength = set_songs.length;
+                            }
+                        });
+
+                        for (let i = 0; i < setlist_songs.length; i++) {
+                            const setLength = setlist_songs[i].length;
+                            if (setLength < maxLength) {
+                                setlist_songs[i].push(...Array(maxLength - setLength).fill(null));
+                                setlist_songs_infos[i].push(...Array(maxLength - setLength).fill(null));
+                            }
+                        }
+
                         const songs = set.song;
                         songs.forEach(song => {
                             const name = song.name;
-                            const songId = name.replace(" ", "_") + "==" + artistId();
-                            if (artistId() !== currentArtistId) {
+                            const songId = name.replace(" ", "_") + "==" + artistId(song);
+                            if (artistId(song) !== currentArtistId) {
                                 const coverArtistName = song.cover.name;
                                 const coverArtistSortName = song.cover.sortName;
-                                insertIntoTable('Artist', [currentArtistId, coverArtistName, coverArtistSortName]).then(() => {
-                                    insertIntoTable('Song', [songId, name, artistId()]).catch(handleError);
+                                insertIntoTable('Artist', [artistId(song), coverArtistName,
+                                    coverArtistSortName, song.cover.tmid], pool).then(() => {
+                                    insertIntoTable('Song', [songId, name, artistId(song)], pool).catch(handleError);
                                 }).catch(handleError);
                             } else {
-                                insertIntoTable('Song', [songId, name, artistId()]).catch(handleError);
+                                insertIntoTable('Song', [songId, name, artistId(song)], pool).catch(handleError);
                             }
                         });
                     });
 
-                    insertIntoTable('Setlist', [setlist.id, setlist.versionId, Date.parse(setlist.eventDate),
-                        Date.parse(setlist.lastUpdated), setlist_songs, encores, currentArtistId, setlist.tour.name,
-                        setlist_songs_infos, encores_infos]).catch(handleError);
+
+                    insertIntoTable('Setlist', [setlist.id, setlist.versionId, eventDateToDate(setlist.eventDate),
+                        new Date(setlist.lastUpdated).toISOString(), setlist_songs, encores, currentArtistId, setlist.tour.name,
+                        setlist_songs_infos, encores_infos, setlist.info, setlist.url], pool).catch(handleError);
                 }
             }).catch(handleError);
         }).catch(handleError);
@@ -116,14 +132,20 @@ function insertSetlistsIntoDatabase(setlists) {
 }
 
 
-function insertIntoTable(table, values) {
+function eventDateToDate(dateStr) {
+    const [day, month, year] = dateStr.split("-");
+    return new Date(year, month - 1, day).toISOString();
+}
+
+
+function insertIntoTable(table, values, pool) {
     const placeholders = values.map((x, index) => "$" + (index + 1).toString()).join();
-    const client = new Client(DbConfig);
+
 
     return new Promise((resolve, reject) => {
-        client.connect().then(() => {
+        pool.connect().then((client) => {
             client.query('INSERT INTO "public"."' + table + '" VALUES (' + placeholders + ") ON CONFLICT DO NOTHING;", values, (queryError) => {
-                client.end();
+                client.release();
                 if (queryError) {
                     reject(queryError);
                 } else {
