@@ -17,7 +17,7 @@ class Header extends Component {
 
     renderRedirect = () => {
         const searchInput = document.getElementById("search-input").value;
-        this.props.history.replace('/search/artists/' + searchInput);
+        this.props.history.push('/search/artists/' + searchInput);
     };
 
     render() {

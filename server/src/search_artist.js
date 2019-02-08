@@ -51,4 +51,3 @@ function dataLoaded(artist, pool) {
 
 
 export default searchArtist;
-

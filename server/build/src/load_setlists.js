@@ -120,9 +120,11 @@ function insertSetlistsIntoDatabase(setlists, pool) {
                     var artistId = songToArtistId(song);
 
                     function addToSongAndSetSong() {
-                      insertIntoTable('Song', [songId, name, artistId], pool).catch(handleError).then(function () {
-                        insertIntoTable('Set_Song', [setId, songId], pool).catch(handleError);
-                      });
+                      if (name) {
+                        insertIntoTable('Song', [songId, name, artistId], pool).catch(handleError).then(function () {
+                          insertIntoTable('Set_Song', [setId, songId], pool).catch(handleError);
+                        });
+                      }
                     }
 
                     if (artistId !== currentArtistId) {

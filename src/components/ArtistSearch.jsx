@@ -1,7 +1,6 @@
 import React, {Component} from 'react';
 import ListGroup from "react-bootstrap/ListGroup";
 import axios from 'axios';
-import {Redirect} from "react-router-dom";
 
 
 const backendSearch = axios.create({
@@ -22,57 +21,59 @@ const loadData = axios.create({
 
 class ArtistSearch extends Component {
 
+    _isMounted = false;
+
     constructor(props) {
         super(props);
         this.state = {
             ...props
         };
     }
-
-    loadArtist(artist) {
-        if (!this.state.reload) {
-            this.setState({
-                ...this.state,
-                reload: true,
-                artist: artist,
+    redirect(artist) {
+        if (!artist.hasData) {
+            loadData.post("/" + artist.mbid);
+            this.state.history.push({
+                pathname: '/artists',
+                state: {
+                    loadingName: artist.name,
+                },
             });
+        } else {
+            this.state.history.push('/artists/' + artist.mbid);
         }
     }
 
-    redirect() {
-        if (this.state.reload) {
-            const artist = this.state.artist;
-            console.log(artist);
-            if (!artist.hasData) {
-                loadData.post('/artist/' + artist.mbid);
-                this.history.push({
-                    pathname: '/artists',
-                    state: {
-                        loadingName: artist.name,
-                    },
-                });
-            } else {
-                return (<Redirect to={'/artists/' + artist.mbid}/>)
+    componentDidMount() {
+        this._isMounted = true;
+        backendSearch.get('/' + this.artistName)
+                .then(data => {
+            if (this._isMounted) {
+                this.setState({
+                    ...this.state,
+                    results: data.data
+                })
             }
-        }
+        });
+    }
+
+    componentWillUnmount() {
+        this._isMounted = false;
     }
 
     render() {
         this.artistName = encodeURIComponent(this.props.match.params.artistName);
-        backendSearch.get('/' + this.artistName)
-            .then(data => this.setState({
-                ...this.state,
-                results: data.data
-        }));
-
+        const style = {
+            cursor: 'pointer',
+        };
         return (
             <div>
-                {this.redirect()}
                 { this.state.results &&
                     <ListGroup>
-                        { this.state.results.map(element => {
-                            return <ListGroup.Item key={element.name} onClick={() => this.loadArtist(element)}
-                                style={{cursor: 'pointer'}}>{element.name}</ListGroup.Item>;
+                        { this.state.results.map(artist => {
+                            return (
+                                <ListGroup.Item key={artist.name} onClick={() => this.redirect(artist)}
+                                                style={style}>{artist.name}</ListGroup.Item>
+                            );
                         })}
                    </ListGroup>
                 }

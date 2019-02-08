@@ -242,3 +242,26 @@ LEFT OUTER JOIN
 	GROUP BY name) as encores
 ON (all_sets.name = encores.name)
 WHERE all_sets.name IS NOT null AND encore_count IS null
+
+
+# Get all the songs played by a particular artist
+SELECT "Artist".name as name, COUNT(*) as count
+FROM "Artist", (
+	SELECT "Song".artist_id as artist_id
+	FROM "Song", (
+		SElECT DISTINCT "Set_Song".song_id as id
+		FROM "Set_Song", (
+			SELECT "Set".id
+			FROM "Set", (
+				SELECT "Setlist".id as id
+				FROM "Setlist"
+				WHERE "Setlist".artist_id = '6faa7ca7-0d99-4a5e-bfa6-1fd5037520c6' 
+			) as artists_setlists
+			WHERE "Set".setlist_id = artists_setlists.id) as set_ids
+		WHERE set_ids.id = "Set_Song".set_id ) as song_ids
+	WHERE "Song".id = song_ids.id AND "Song".artist_id != '6faa7ca7-0d99-4a5e-bfa6-1fd5037520c6') as artist_ids
+WHERE artist_ids.artist_id = "Artist".mbid
+GROUP BY "Artist".name
+ORDER BY count DESC
+
+** Remove DISTINCT to get total number of playes **
