@@ -24,7 +24,8 @@ app.use(_express.default.json());
 app.use((0, _cors.default)({
   credentials: true,
   origin: true
-}));
+})); // Download data
+
 app.post('/artist/:artistId', function (req, res) {
   var artistId = req.params.artistId;
   (0, _load_setlists.default)(artistId, pool);
@@ -33,7 +34,8 @@ app.post('/artist/:artistId', function (req, res) {
 app.get('/artist/:artistId/', function (req, res) {
   var artistId = req.params.artistId;
   return res.status(200).send("Ok");
-});
+}); // Search for an artist
+
 app.get('/search/artists/:artistName',
 /*#__PURE__*/
 function () {
@@ -47,7 +49,7 @@ function () {
           case 0:
             artistName = req.params.artistName;
             _context.next = 3;
-            return (0, _search_artist.default)(artistName).catch(function (error) {
+            return (0, _search_artist.default)(artistName, pool).catch(function (error) {
               return console.log(error);
             });
 

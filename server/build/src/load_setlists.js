@@ -9,6 +9,8 @@ var _axios = _interopRequireDefault(require("axios"));
 
 var _keys = require("./keys");
 
+var _v = _interopRequireDefault(require("uuid/v4"));
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _slicedToArray(arr, i) { return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _nonIterableRest(); }
@@ -18,14 +20,6 @@ function _nonIterableRest() { throw new TypeError("Invalid attempt to destructur
 function _iterableToArrayLimit(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"] != null) _i["return"](); } finally { if (_d) throw _e; } } return _arr; }
 
 function _arrayWithHoles(arr) { if (Array.isArray(arr)) return arr; }
-
-function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _nonIterableSpread(); }
-
-function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance"); }
-
-function _iterableToArray(iter) { if (Symbol.iterator in Object(iter) || Object.prototype.toString.call(iter) === "[object Arguments]") return Array.from(iter); }
-
-function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = new Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } }
 
 function loadSetlists(mbid, pool) {
   var setlistFm = _axios.default.create({
@@ -89,79 +83,63 @@ function insertSetlistsIntoDatabase(setlists, pool) {
       var country = city.country;
       insertIntoTable("City", [city.id, city.name, city.state, city.stateCode, coordinates.long, coordinates.lat, country.code, country.name], pool).then(function () {
         var venue = setlist.venue;
-        insertIntoTable("Venue", [venue.id, venue.name, city.id], pool).catch(handleError);
-        var sets = setlist.sets.set;
+        insertIntoTable("Venue", [venue.id, venue.name, city.id], pool).catch(handleError).then(function () {
+          var sets = setlist.sets.set;
 
-        if (sets) {
-          var artistId = function artistId(song) {
-            return song && song.cover && song.cover.mbid || currentArtistId;
-          };
+          if (sets) {
+            var songToArtistId = function songToArtistId(song) {
+              return song && song.cover && song.cover.mbid || currentArtistId;
+            };
 
-          var songToSongId = function songToSongId(song) {
-            var name = song.name;
-            return artistId(song) + "==" + name;
-          };
-
-          var setlist_songs = [];
-          var setlist_songs_infos = [];
-          var encores = [];
-          var encores_infos = [];
-          sets.forEach(function (set) {
-            var encore = set.encore;
-
-            if (encore) {
-              encores.push.apply(encores, _toConsumableArray(set.song.map(function (song) {
-                return songToSongId(song);
-              })));
-              encores_infos.push.apply(encores_infos, _toConsumableArray(set.song.map(function (song) {
-                return song.info;
-              })));
-            } else {
-              setlist_songs.push(set.song.map(function (song) {
-                return songToSongId(song);
-              }));
-              setlist_songs_infos.push(set.song.map(function (song) {
-                return song.info;
-              }));
-            }
-
-            var maxLength = 0;
-            setlist_songs.forEach(function (set_songs) {
-              if (set_songs.length > maxLength) {
-                maxLength = set_songs.length;
-              }
-            });
-
-            for (var i = 0; i < setlist_songs.length; i++) {
-              var setLength = setlist_songs[i].length;
-
-              if (setLength < maxLength) {
-                var _setlist_songs$i, _setlist_songs_infos$;
-
-                (_setlist_songs$i = setlist_songs[i]).push.apply(_setlist_songs$i, _toConsumableArray(Array(maxLength - setLength).fill(null)));
-
-                (_setlist_songs_infos$ = setlist_songs_infos[i]).push.apply(_setlist_songs_infos$, _toConsumableArray(Array(maxLength - setLength).fill(null)));
-              }
-            }
-
-            var songs = set.song;
-            songs.forEach(function (song) {
+            var songToSongId = function songToSongId(song) {
               var name = song.name;
-              var songId = name.replace(" ", "_") + "==" + artistId(song);
+              return name + "=!=" + songToArtistId(song);
+            };
 
-              if (artistId(song) !== currentArtistId) {
-                var coverArtistName = song.cover.name;
-                var coverArtistSortName = song.cover.sortName;
-                insertIntoTable('Artist', [artistId(song), coverArtistName, coverArtistSortName, song.cover.tmid], pool).then(function () {
-                  insertIntoTable('Song', [songId, name, artistId(song)], pool).catch(handleError);
-                }).catch(handleError);
+            var encoreIndex = 1;
+            sets.forEach(function (set, index) {
+              var encore = set.encore;
+              var setId = (0, _v.default)();
+              var setName;
+
+              if (encore) {
+                setName = "Encore " + encoreIndex;
+                encoreIndex += 1;
               } else {
-                insertIntoTable('Song', [songId, name, artistId(song)], pool).catch(handleError);
+                setName = "Set " + (index + 1);
               }
+
+              insertIntoTable('Setlist', [setlist.id, setlist.versionId, eventDateToDate(setlist.eventDate), new Date(setlist.lastUpdated).toISOString(), currentArtistId, setlist.tour.name, setlist.info, setlist.url, venue.id], pool).catch(handleError).then(function () {
+                insertIntoTable('Set', [setId, setName, Boolean(encore), set.song.map(function (song) {
+                  return song.info;
+                }), setlist.id], pool).catch(handleError).then(function () {
+                  var songs = set.song;
+                  songs.forEach(function (song) {
+                    var name = song.name;
+                    var songId = songToSongId(song);
+                    var artistId = songToArtistId(song);
+
+                    function addToSongAndSetSong() {
+                      insertIntoTable('Song', [songId, name, artistId], pool).catch(handleError).then(function () {
+                        insertIntoTable('Set_Song', [setId, songId], pool).catch(handleError);
+                      });
+                    }
+
+                    if (artistId !== currentArtistId) {
+                      var coverArtistName = song.cover.name;
+                      var coverArtistSortName = song.cover.sortName;
+                      insertIntoTable('Artist', [artistId, coverArtistName, coverArtistSortName, song.cover.tmid], pool).then(function () {
+                        addToSongAndSetSong();
+                      }).catch(handleError);
+                    } else {
+                      addToSongAndSetSong();
+                    }
+                  });
+                });
+              });
             });
-          });
-          insertIntoTable('Setlist', [setlist.id, setlist.versionId, eventDateToDate(setlist.eventDate), new Date(setlist.lastUpdated).toISOString(), setlist_songs, encores, currentArtistId, setlist.tour.name, setlist_songs_infos, encores_infos, setlist.info, setlist.url], pool).catch(handleError);
-        }
+          }
+        });
       }).catch(handleError);
     }).catch(handleError);
   });

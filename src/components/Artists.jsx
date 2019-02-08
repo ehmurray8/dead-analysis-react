@@ -1,9 +1,15 @@
 import React from 'react';
 
 
-const Artists = () => {
+const Artists = (props) => {
+    const loadingName = props.location.state.loadingName;
     return (
-        <h1>Artists Page</h1>
+        <div>
+            <h1>Artists Page</h1>
+            { loadingName &&
+                <h3>{"Loading Artist " + loadingName + ". Please wait a few minutes and navigate back to the artist's page."}</h3>
+            }
+        </div>
     );
 };
 

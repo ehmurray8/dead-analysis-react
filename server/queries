@@ -1,0 +1,244 @@
+# All Song Names 
+SELECT "Song".name
+FROM "Song", (
+	SElECT DISTINCT "Set_Song".song_id as id
+	FROM "Set_Song", (
+		SELECT "Set".id
+		FROM "Set", (
+			SELECT "Setlist".id as id
+			FROM "Setlist"
+			WHERE "Setlist".artist_id = '6faa7ca7-0d99-4a5e-bfa6-1fd5037520c6' 
+		) as artists_setlists
+		WHERE "Set".setlist_id = artists_setlists.id) as set_ids
+	WHERE set_ids.id = "Set_Song".set_id ) as song_ids
+WHERE "Song".id = song_ids.id
+***
+ Remove DISTINCT to determine total number of songs played
+***
+
+
+# All Originals
+SELECT "Song".name
+FROM "Song"
+WHERE "Setlist".artist_id = '6faa7ca7-0d99-4a5e-bfa6-1fd5037520c6' 
+
+
+# All Covers
+SELECT "Song".name
+FROM "Song", (
+	SElECT DISTINCT "Set_Song".song_id as id
+	FROM "Set_Song", (
+		SELECT "Set".id
+		FROM "Set", (
+			SELECT "Setlist".id as id
+			FROM "Setlist"
+			WHERE "Setlist".artist_id = '6faa7ca7-0d99-4a5e-bfa6-1fd5037520c6' 
+		) as artists_setlists
+		WHERE "Set".setlist_id = artists_setlists.id) as set_ids
+	WHERE set_ids.id = "Set_Song".set_id ) as song_ids
+WHERE "Song".id = song_ids.id AND "Song".artist_id != '6faa7ca7-0d99-4a5e-bfa6-1fd5037520c6'
+
+
+# All Venues (With Count and City info)
+SELECT "venues".*, "City".*
+FROM "City", (
+	SELECT venue_info.venue_name, venue_info.city_id as city_id, COUNT(*) as times_played
+	FROM  (
+		SELECT "Venue".name as venue_name, "Venue".city_id as city_id
+		FROM "Venue", (
+			SELECT "Setlist".venue_id as venue_id
+			FROM "Setlist"
+			WHERE "Setlist".artist_id = '6faa7ca7-0d99-4a5e-bfa6-1fd5037520c6' ) as artist_setlists
+		WHERE artist_setlists.venue_id = "Venue".id ) as venue_info
+	GROUP BY venue_info.venue_name, venue_info.city_id ) as venues
+WHERE venues.city_id = "City".id
+ORDER BY venues.times_played DESC
+
+
+# Tours
+SELECT "Setlist".tour_name as tour_name, COUNT(*) as num_tour_setlists
+FROM "Setlist"
+WHERE "Setlist".artist_id = '6faa7ca7-0d99-4a5e-bfa6-1fd5037520c6'
+GROUP BY tour_name
+ORDER BY num_tour_setlists DESC
+
+
+# Year Info (Can be used for month as well, and day of week as well)
+SELECT concert_years.year as year, COUNT(*) as total_concerts
+FROM (
+	SELECT "Setlist".event_date as event_date, date_part('year', event_date) as year
+	FROM "Setlist"
+	WHERE "Setlist".artist_id = '6faa7ca7-0d99-4a5e-bfa6-1fd5037520c6') as concert_years
+GROUP BY year
+ORDER BY total_concerts DESC
+
+** Can also apply
+    * dow (Day of week): 0 is sunday
+    * doy (Day of year): 1-365/366
+    * decade: Year / 10, thus 198 = 80s
+    * century
+    * quarter
+    * week
+    * month
+    Reference: https://www.postgresql.org/docs/8.0/functions-datetime.html
+**
+
+
+# Times played per year (Can be adjusted for month, etc.)
+SELECT "Song".name as name, song_ids.year as year, COUNT(*) as times_played_per_year
+FROM "Song", (
+	SElECT "Set_Song".song_id as id, set_ids.year as year
+	FROM "Set_Song", (
+		SELECT "Set".id, artists_setlists.year as year
+		FROM "Set", (
+			SELECT "Setlist".id as id, "Setlist".event_date as event_date, date_part('year', event_date) as year
+			FROM "Setlist"
+			WHERE "Setlist".artist_id = '6faa7ca7-0d99-4a5e-bfa6-1fd5037520c6' 
+		) as artists_setlists
+		WHERE "Set".setlist_id = artists_setlists.id) as set_ids
+	WHERE set_ids.id = "Set_Song".set_id ) as song_ids
+WHERE "Song".id = song_ids.id AND "Song".name != 'Drums' AND "Song".name != 'Space'
+GROUP BY name, year
+ORDER BY times_played_per_year DESC, year
+
+
+# All songs played as an encore
+SELECT "Song".name, song_ids.name as set_name
+FROM "Song", (
+	SElECT DISTINCT "Set_Song".song_id as id, set_ids.name as name
+	FROM "Set_Song", (
+		SELECT "Set".id, "Set".name as name
+		FROM "Set", (
+			SELECT "Setlist".id as id
+			FROM "Setlist"
+			WHERE "Setlist".artist_id = '6faa7ca7-0d99-4a5e-bfa6-1fd5037520c6' 
+		) as artists_setlists
+		WHERE "Set".setlist_id = artists_setlists.id AND "Set".name LIKE 'Encore%') as set_ids
+	WHERE set_ids.id = "Set_Song".set_id ) as song_ids
+WHERE "Song".id = song_ids.id
+
+
+# All songs played in 1st set with count (Can be modified for other sets, and for encore)
+SELECT "Song".name as name, COUNT(*) as count
+FROM "Song", (
+	SElECT "Set_Song".song_id as id
+	FROM "Set_Song", (
+		SELECT "Set".id, "Set".name as name
+		FROM "Set", (
+			SELECT "Setlist".id as id
+			FROM "Setlist"
+			WHERE "Setlist".artist_id = '6faa7ca7-0d99-4a5e-bfa6-1fd5037520c6' 
+		) as artists_setlists
+		WHERE "Set".setlist_id = artists_setlists.id AND "Set".name = 'Set 1') as set_ids
+	WHERE set_ids.id = "Set_Song".set_id ) as song_ids
+WHERE "Song".id = song_ids.id
+GROUP BY name
+ORDER BY count DESC
+
+# Songs played a lot in one set but not the other
+SELECT set1.name, count1, count2, @(count1 - count2) as difference
+FROM 
+	(SELECT "Song".name as name, COUNT(*) as count1
+	FROM "Song", (
+		SElECT "Set_Song".song_id as id
+		FROM "Set_Song", (
+			SELECT "Set".id, "Set".name as name
+			FROM "Set", (
+				SELECT "Setlist".id as id
+				FROM "Setlist"
+				WHERE "Setlist".artist_id = '6faa7ca7-0d99-4a5e-bfa6-1fd5037520c6' 
+			) as artists_setlists
+			WHERE "Set".setlist_id = artists_setlists.id AND "Set".name = 'Set 1') as set_ids
+		WHERE set_ids.id = "Set_Song".set_id ) as song_ids
+	WHERE "Song".id = song_ids.id
+	GROUP BY name) as set1, 
+	(SELECT "Song".name as name, COUNT(*) as count2
+	FROM "Song", (
+		SElECT "Set_Song".song_id as id
+		FROM "Set_Song", (
+			SELECT "Set".id, "Set".name as name
+			FROM "Set", (
+				SELECT "Setlist".id as id
+				FROM "Setlist"
+				WHERE "Setlist".artist_id = '6faa7ca7-0d99-4a5e-bfa6-1fd5037520c6' 
+			) as artists_setlists
+			WHERE "Set".setlist_id = artists_setlists.id AND "Set".name = 'Set 2') as set_ids
+		WHERE set_ids.id = "Set_Song".set_id ) as song_ids
+	WHERE "Song".id = song_ids.id
+	GROUP BY name) as set2
+WHERE set1.name = set2.name
+ORDER BY difference DESC
+
+
+# Songs played as both encore and in concert
+SELECT all_sets.name, set_count, encore_count, @(set_count - encore_count) as difference
+FROM 
+	(SELECT "Song".name as name, COUNT(*) as set_count
+	FROM "Song", (
+		SElECT "Set_Song".song_id as id
+		FROM "Set_Song", (
+			SELECT "Set".id, "Set".name as name
+			FROM "Set", (
+				SELECT "Setlist".id as id
+				FROM "Setlist"
+				WHERE "Setlist".artist_id = '6faa7ca7-0d99-4a5e-bfa6-1fd5037520c6' 
+			) as artists_setlists
+			WHERE "Set".setlist_id = artists_setlists.id AND "Set".name LIKE 'Set%') as set_ids
+		WHERE set_ids.id = "Set_Song".set_id ) as song_ids
+	WHERE "Song".id = song_ids.id
+	GROUP BY name) as all_sets,
+	
+	(SELECT "Song".name as name, COUNT(*) as encore_count
+	FROM "Song", (
+		SElECT "Set_Song".song_id as id
+		FROM "Set_Song", (
+			SELECT "Set".id, "Set".name as name
+			FROM "Set", (
+				SELECT "Setlist".id as id
+				FROM "Setlist"
+				WHERE "Setlist".artist_id = '6faa7ca7-0d99-4a5e-bfa6-1fd5037520c6' 
+			) as artists_setlists
+			WHERE "Set".setlist_id = artists_setlists.id AND "Set".name LIKE 'Encore%') as set_ids
+		WHERE set_ids.id = "Set_Song".set_id ) as song_ids
+	WHERE "Song".id = song_ids.id
+	GROUP BY name) as encores
+WHERE encores.name = all_sets.name
+ORDER BY difference DESC
+
+
+# Songs not played as encores
+SELECT all_sets.name, encore_count, set_count
+FROM (
+	SELECT "Song".name as name, COUNT(*) as set_count
+	FROM "Song", (
+		SElECT "Set_Song".song_id as id
+		FROM "Set_Song", (
+			SELECT "Set".id, "Set".name as name
+			FROM "Set", (
+				SELECT "Setlist".id as id
+				FROM "Setlist"
+				WHERE "Setlist".artist_id = '6faa7ca7-0d99-4a5e-bfa6-1fd5037520c6' 
+			) as artists_setlists
+			WHERE "Set".setlist_id = artists_setlists.id AND "Set".name LIKE 'Set%') as set_ids
+		WHERE set_ids.id = "Set_Song".set_id ) as song_ids
+	WHERE "Song".id = song_ids.id
+	GROUP BY name) as all_sets
+	
+LEFT OUTER JOIN
+	
+	(SELECT "Song".name as name, COUNT(*) as encore_count
+	FROM "Song", (
+		SElECT "Set_Song".song_id as id
+		FROM "Set_Song", (
+			SELECT "Set".id, "Set".name as name
+			FROM "Set", (
+				SELECT "Setlist".id as id
+				FROM "Setlist"
+				WHERE "Setlist".artist_id = '6faa7ca7-0d99-4a5e-bfa6-1fd5037520c6' 
+			) as artists_setlists
+			WHERE "Set".setlist_id = artists_setlists.id AND "Set".name LIKE 'Encore%') as set_ids
+		WHERE set_ids.id = "Set_Song".set_id ) as song_ids
+	WHERE "Song".id = song_ids.id
+	GROUP BY name) as encores
+ON (all_sets.name = encores.name)
+WHERE all_sets.name IS NOT null AND encore_count IS null

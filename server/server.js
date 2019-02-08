@@ -8,9 +8,7 @@ import cors from 'cors';
 
 const app = express();
 
-const pool = Pool(DbConfig);
-
-app.use(express.json());
+const pool = Pool(DbConfig); app.use(express.json());
 
 app.use(cors({
     credentials: true,
@@ -32,7 +30,7 @@ app.get('/artist/:artistId/', (req, res) => {
 // Search for an artist
 app.get('/search/artists/:artistName', async (req, res) => {
     const artistName = req.params.artistName;
-    const artists = await searchArtist(artistName).catch((error) => console.log(error));
+    const artists = await searchArtist(artistName, pool).catch((error) => console.log(error));
     return res.status(200).send(artists);
 });
 

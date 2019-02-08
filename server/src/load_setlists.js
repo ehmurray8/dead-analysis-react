@@ -1,5 +1,6 @@
 import axios from 'axios';
 import {ApiKey} from "./keys";
+import uuid from 'uuid/v4';
 
 
 function loadSetlists(mbid, pool) {
@@ -62,70 +63,60 @@ function insertSetlistsIntoDatabase(setlists, pool) {
             insertIntoTable("City", [city.id, city.name, city.state, city.stateCode,
                     coordinates.long, coordinates.lat, country.code, country.name], pool).then(() => {
                 const venue = setlist.venue;
-                insertIntoTable("Venue", [venue.id, venue.name, city.id], pool).catch(handleError);
+                insertIntoTable("Venue", [venue.id, venue.name, city.id], pool).catch(handleError).then(() =>{
+                    const sets = setlist.sets.set;
+                    if (sets) {
+                        const songToArtistId = (song) => {
+                            return (song && song.cover && song.cover.mbid) || currentArtistId;
+                        };
 
-                const sets = setlist.sets.set;
-                if (sets) {
-                    const artistId = (song) => {
-                        return (song && song.cover && song.cover.mbid) || currentArtistId;
-                    };
-
-                    const songToSongId = (song) => {
-                        const name = song.name;
-                        return artistId(song) + "==" + name;
-                    };
-
-                    const setlist_songs = [];
-                    const setlist_songs_infos = [];
-                    const encores = [];
-                    const encores_infos = [];
-                    sets.forEach((set) => {
-                        const encore = set.encore;
-                        if (encore) {
-                            encores.push(...set.song.map(song => songToSongId(song)));
-                            encores_infos.push(...set.song.map(song => song.info));
-                        } else {
-                            setlist_songs.push(set.song.map(song => songToSongId(song)));
-                            setlist_songs_infos.push(set.song.map(song => song.info))
-                        }
-
-                        let maxLength = 0;
-                        setlist_songs.forEach(set_songs => {
-                            if (set_songs.length > maxLength) {
-                                maxLength = set_songs.length;
-                            }
-                        });
-
-                        for (let i = 0; i < setlist_songs.length; i++) {
-                            const setLength = setlist_songs[i].length;
-                            if (setLength < maxLength) {
-                                setlist_songs[i].push(...Array(maxLength - setLength).fill(null));
-                                setlist_songs_infos[i].push(...Array(maxLength - setLength).fill(null));
-                            }
-                        }
-
-                        const songs = set.song;
-                        songs.forEach(song => {
+                        const songToSongId = (song) => {
                             const name = song.name;
-                            const songId = name.replace(" ", "_") + "==" + artistId(song);
-                            if (artistId(song) !== currentArtistId) {
-                                const coverArtistName = song.cover.name;
-                                const coverArtistSortName = song.cover.sortName;
-                                insertIntoTable('Artist', [artistId(song), coverArtistName,
-                                    coverArtistSortName, song.cover.tmid], pool).then(() => {
-                                    insertIntoTable('Song', [songId, name, artistId(song)], pool).catch(handleError);
-                                }).catch(handleError);
+                            return name + "=!=" + songToArtistId(song);
+                        };
+
+                        let encoreIndex = 1;
+                        sets.forEach((set, index) => {
+                            const encore = set.encore;
+                            const setId = uuid();
+                            let setName;
+                            if (encore) {
+                                setName = "Encore " + encoreIndex;
+                                encoreIndex += 1;
                             } else {
-                                insertIntoTable('Song', [songId, name, artistId(song)], pool).catch(handleError);
+                                setName = "Set " + (index + 1);
                             }
+                            insertIntoTable('Setlist', [setlist.id, setlist.versionId, eventDateToDate(setlist.eventDate),
+                                    new Date(setlist.lastUpdated).toISOString(), currentArtistId, setlist.tour.name,
+                                    setlist.info, setlist.url, venue.id], pool).catch(handleError).then(() => {
+                                insertIntoTable('Set', [setId, setName, Boolean(encore), set.song.map(song => song.info), setlist.id], pool).catch(handleError).then(() => {
+                                    const songs = set.song;
+                                    songs.forEach(song => {
+                                        const name = song.name;
+                                        const songId = songToSongId(song);
+                                        const artistId = songToArtistId(song);
+                                        function addToSongAndSetSong() {
+                                            insertIntoTable('Song', [songId, name, artistId], pool).catch(handleError).then(() => {
+                                                insertIntoTable('Set_Song', [setId, songId], pool).catch(handleError);
+                                            });
+                                        }
+
+                                        if (artistId !== currentArtistId) {
+                                            const coverArtistName = song.cover.name;
+                                            const coverArtistSortName = song.cover.sortName;
+                                            insertIntoTable('Artist', [artistId, coverArtistName,
+                                                coverArtistSortName, song.cover.tmid], pool).then(() => {
+                                                    addToSongAndSetSong();
+                                            }).catch(handleError);
+                                        } else {
+                                            addToSongAndSetSong();
+                                        }
+                                    });
+                                });
+                            });
                         });
-                    });
-
-
-                    insertIntoTable('Setlist', [setlist.id, setlist.versionId, eventDateToDate(setlist.eventDate),
-                        new Date(setlist.lastUpdated).toISOString(), setlist_songs, encores, currentArtistId, setlist.tour.name,
-                        setlist_songs_infos, encores_infos, setlist.info, setlist.url], pool).catch(handleError);
-                }
+                    }
+                });
             }).catch(handleError);
         }).catch(handleError);
     });

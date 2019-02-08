@@ -6,14 +6,14 @@ const Artist = (props) => {
     const artistId = parseInt(props.match.params.artistId, 10);
 
     return (
-        <g>
+        <div>
             { Number.isInteger(artistId) &&
                 <h1>{artistId}</h1>
             }
             { !artistId &&
                 <h1>Artist not found</h1>
             }
-        </g>
+        </div>
 
     )
 };
