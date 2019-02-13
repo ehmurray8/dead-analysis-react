@@ -23,6 +23,7 @@ app.post('/artist/:artistId', (req, res) => {
     return res.status(200).send("Downloading " + artistId + " data...");
 });
 
+// Get song data
 app.get('/artist/:artistId/', async (req, res) => {
     const artistId = req.params.artistId;
     let allSongs = [];
@@ -74,8 +75,28 @@ app.get('/search/artists/:artistName', async (req, res) => {
             return first.localeCompare(first);
         }
     };
-    artists.sort(sortArtists);
+    if (artists) {
+        artists.sort(sortArtists);
+        artists.forEach((artist) => {
+            pool.connect().then((client) => {
+                client.query('INSERT INTO "NameIds" VALUES($1, $2)', [artist.mbid, artist.name], (queryError, response) => {
+                    client.release();
+                    if (queryError) {
+                        console.log(queryError);
+                    }
+                });
+            }).catch(() => console.log("Connection error"));
+        });
+    }
     return res.status(200).send(artists);
+});
+
+// Get an artist's name from their id
+app.get('/artist/:artistId/name', async (req, res) => {
+    const artistId = req.params.artistId;
+    const queryResponse = await pool.query(`SELECT "NameIds".name FROM "NameIds" WHERE "NameIds".id = '${artistId}'`);
+    const artistName = (queryResponse.rows && queryResponse.rows[0] && queryResponse.rows[0].name) || "";
+    return res.status(200).send(artistName);
 });
 
 app.get('/artist/:artistId/venue-locations', (req, res) => {

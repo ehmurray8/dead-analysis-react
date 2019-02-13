@@ -45,8 +45,7 @@ class ArtistSearch extends Component {
 
     componentDidMount() {
         this._isMounted = true;
-        backendSearch.get('/' + this.artistName)
-                .then(data => {
+        backendSearch.get('/' + this.artistName).then(data => {
             if (this._isMounted) {
                 this.setState({
                     ...this.state,

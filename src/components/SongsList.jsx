@@ -16,15 +16,31 @@ class SongsList extends Component {
     }
 
     render() {
+        const headerStyle = {
+            marginLeft: '5px',
+        };
+        const subHeaderStyle = {
+            marginLeft: '25px',
+        };
         return (
             <div style={this.state.innerStyle}>
                 { this.state.songs &&
                     <div>
-                        <h2>{this.state.identifier + ":" + this.state.songs.length + "/" + this.state.totalSongPlays}</h2>
+                        <h2 style={headerStyle}>{this.state.identifier}</h2>
+                        <h5 style={subHeaderStyle}>{"Unique songs: " + Number(this.state.songs.length).toLocaleString()}</h5>
+                        <h5 style={subHeaderStyle}>{"Total number of song plays: " + Number(this.state.totalSongPlays).toLocaleString()}</h5>
                         <ListGroup>
                             {  this.state.songs.map(song => {
                                     return (
-                                        <ListGroup.Item key={song.name}>{song.name + ": " + song.times_played}</ListGroup.Item>
+                                        <div>
+                                            { song.artist_name &&
+                                                <ListGroup.Item key={song.name + this.state.identifier}>{song.name + " (" + song.artist_name + "): "
+                                                    + Number(song.times_played).toLocaleString()}</ListGroup.Item>
+                                            }
+                                            { !song.artist_name &&
+                                                <ListGroup.Item key={song.name + this.state.identifier}>{song.name + ": " + Number(song.times_played).toLocaleString()}</ListGroup.Item>
+                                            }
+                                        </div>
                                     );
                                 })
                             }
@@ -42,6 +58,7 @@ SongsList.propTypes = {
     songs: PropTypes.arrayOf(PropTypes.shape({
         name: PropTypes.string.isRequired,
         times_played: PropTypes.string.isRequired,
+        artist_name: PropTypes.string,
     })),
     totalSongPlays: PropTypes.number,
     identifier: PropTypes.string.isRequired,

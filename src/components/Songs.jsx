@@ -1,9 +1,19 @@
 import React, {Component} from 'react';
 import axios from 'axios';
 import SongsList from "./SongsList";
+import Breadcrumb from "react-bootstrap/es/Breadcrumb";
+import BreadcrumbItem from "react-bootstrap/BreadcrumbItem";
 
 
 const backendQuery = axios.create({
+    baseURL: 'http://localhost:3001/artist/',
+    headers: {
+        "Access-Control-Allow-Origin": "*",
+    },
+});
+
+
+const backendNameSearch = axios.create({
     baseURL: 'http://localhost:3001/artist/',
     headers: {
         "Access-Control-Allow-Origin": "*",
@@ -19,12 +29,12 @@ class Songs extends Component {
         this.state = {
             ...props
         };
+        this.artistId = this.state.match.params.artistId;
     }
 
     componentDidMount() {
         this._isMounted = true;
-        const artistId = this.state.match.params.artistId;
-        backendQuery.get(artistId).then((data) => {
+        backendQuery.get(this.artistId).then((data) => {
              if (this._isMounted) {
                  this.setState({
                      ...this.state,
@@ -33,6 +43,15 @@ class Songs extends Component {
                      covers: data.data.covers,
                  });
              }
+        });
+
+        backendNameSearch.get(`${this.artistId}/name`).then((data) => {
+            if (this._isMounted) {
+                this.setState({
+                    ...this.state,
+                    artistName: data.data,
+                })
+            }
         });
     }
 
@@ -52,6 +71,9 @@ class Songs extends Component {
 
         return (
             <div>
+                <Breadcrumb>
+                    <BreadcrumbItem href={"/artists/" + this.artistId}>{this.state.artistName || "Artist Home"}</BreadcrumbItem>
+                </Breadcrumb>
                 <SongsList innerStyle={innerStyle} songs={this.state.songs} identifier={"All Songs"} totalSongPlays={totalSongPlays}/>
                 <SongsList innerStyle={innerStyle} songs={this.state.originals} identifier={"All Originals"} totalSongPlays={totalOriginalPlays}/>
                 <SongsList innerStyle={innerStyle} songs={this.state.covers} identifier={"All Covers"} totalSongPlays={totalCoverPlays}/>

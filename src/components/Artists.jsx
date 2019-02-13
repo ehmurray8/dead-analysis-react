@@ -2,7 +2,7 @@ import React from 'react';
 
 
 const Artists = (props) => {
-    const loadingName = props.location.state.loadingName;
+    const loadingName = props.location && props.location.state && props.location.state.loadingName;
     return (
         <div>
             <h1>Artists Page</h1>

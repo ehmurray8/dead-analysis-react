@@ -5,6 +5,7 @@ import FormControl from "react-bootstrap/es/FormControl";
 import Form from "react-bootstrap/Form";
 import Button from "react-bootstrap/Button";
 import {withRouter} from "react-router-dom";
+import App from '../App';
 
 class Header extends Component {
 
@@ -17,10 +18,14 @@ class Header extends Component {
 
     renderRedirect = () => {
         const searchInput = document.getElementById("search-input").value;
-        this.props.history.push('/search/artists/' + searchInput);
+        this.props.history.replace('/search/artists/' + searchInput);
+        window.location.reload(false);
     };
 
     render() {
+        const artistId = App.artistId;
+        const artistName = App.artistName;
+
         return (
             <div>
                <Navbar bg="dark" variant="dark">
@@ -28,6 +33,9 @@ class Header extends Component {
                    <Nav className='mr-auto'>
                        <Nav.Link href="/">Home</Nav.Link>
                        <Nav.Link href="/artists">Artists</Nav.Link>
+                       { artistId && artistName &&
+                           <Nav.Link href={`/artists/${artistId}`}>{artistName}</Nav.Link>
+                       }
                    </Nav>
                    <Form inline>
                        <FormControl type="text" placeholder="search" className="mr-sm-2" id="search-input"/>

@@ -1,6 +1,6 @@
 export function getAllSongs(pool, artistId) {
     return query(pool, `
-        SELECT "Song".name as name, COUNT(*) as times_played
+        SELECT "Song".name as name, COUNT(*) as times_played, "Song".id as song_id
         FROM "Song", (
             SElECT "Set_Song".song_id as id
             FROM "Set_Song", (
@@ -20,7 +20,7 @@ export function getAllSongs(pool, artistId) {
 
 export function getAllOriginals(pool, artistId) {
     return query(pool, `
-        SELECT "Song".name as name, COUNT(*) as times_played
+        SELECT "Song".name as name, COUNT(*) as times_played, "Song".id as song_id
         FROM "Song", (
             SElECT "Set_Song".song_id as id
             FROM "Set_Song", (
@@ -40,7 +40,9 @@ export function getAllOriginals(pool, artistId) {
 
 export function getAllCovers(pool, artistId) {
     return query(pool, `
-        SELECT "Song".name as name, COUNT(*) as times_played
+    SELECT name_ids.name as name, "Artist".name as artist_name, name_ids.times_played, "Song".id as song_id
+    FROM "Artist", (
+        SELECT "Song".name as name, "Song".artist_id as artist_id, COUNT(*) as times_played
         FROM "Song", (
             SElECT "Set_Song".song_id as id
             FROM "Set_Song", (
@@ -48,13 +50,21 @@ export function getAllCovers(pool, artistId) {
                 FROM "Set", (
                     SELECT "Setlist".id as id
                     FROM "Setlist"
-                    WHERE "Setlist".artist_id = '${artistId}'
+                    WHERE "Setlist".artist_id = '${artistId}' 
                 ) as artists_setlists
                 WHERE "Set".setlist_id = artists_setlists.id) as set_ids
             WHERE set_ids.id = "Set_Song".set_id ) as song_ids
         WHERE "Song".id = song_ids.id AND "Song".artist_id != '${artistId}'
-        GROUP BY name
-        ORDER BY times_played DESC
+        GROUP BY name, artist_id
+        ORDER BY times_played DESC) as name_ids
+    WHERE "Artist".mbid = name_ids.artist_id
+    `);
+}
+
+
+export function getAllSetlistsBySong(pool, song) {
+    return query(pool, `
+         
     `);
 }
 

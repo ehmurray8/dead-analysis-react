@@ -265,3 +265,19 @@ GROUP BY "Artist".name
 ORDER BY count DESC
 
 ** Remove DISTINCT to get total number of playes **
+
+
+# Get all setlists by Song
+SELECT setlist_info.event_date, setlist_info.tour_name, setlist_info.id, "Venue".name as venue_name
+FROM "Venue", (
+	SELECT "Setlist".event_date, "Setlist".tour_name, "Setlist".venue_id, "Setlist".id
+	FROM "Setlist", (
+		SELECT "Set".setlist_id as setlist_id
+		FROM "Set", (
+			SELECT "Set_Song".set_id as set_id
+			FROM "Set_Song"
+			WHERE "Set_Song".song_id = 'St. Stephen=!=6faa7ca7-0d99-4a5e-bfa6-1fd5037520c6') as set_ids
+		WHERE set_ids.set_id = "Set".id) as setlist_ids
+	WHERE "Setlist".id = setlist_ids.setlist_id) as setlist_info
+WHERE "Venue".id = setlist_info.venue_id
+ORDER BY setlist_info.event_date DESC

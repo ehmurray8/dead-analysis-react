@@ -1,8 +1,19 @@
 import React, {Component} from 'react';
-import {Card} from "react-bootstrap";
+import ArtistStatsCard from "./ArtistStatsCard";
+import axios from 'axios';
+
+
+const backendSearch = axios.create({
+    baseURL: 'http://localhost:3001/artist/',
+    headers: {
+        "Access-Control-Allow-Origin": "*",
+    },
+});
 
 
 class Artist extends Component {
+
+    _isMounted = false;
 
     constructor(props) {
         super(props);
@@ -12,38 +23,35 @@ class Artist extends Component {
         this.artistId = this.state.match.params.artistId;
     }
 
+    componentDidMount() {
+        this._isMounted = true;
+        backendSearch.get(`${this.artistId}/name`).then((data) => {
+            if (this._isMounted) {
+                this.setState({
+                    ...this.state,
+                    artistName: data.data,
+                })
+            }
+        });
+    }
+
+    componentWillUnmount() {
+        this._isMounted = false;
+    }
+
     showSongs() {
         this.state.history.push('/artists/' + this.artistId + "/songs");
     }
 
     render() {
-        const width = (window.innerWidth * .2);
-        const height = width * .75;
-
-        const cardStyle = {
-            width: width + "px",
-            height: height + "px",
-            marginTop: "25px",
-            marginLeft: "25px",
-            marginBottom: "25px",
-            cursor: "pointer",
-            float: "left",
-        };
-
-        const titleStyle = {
-            textAlign: "center",
-            fontSize: "50px",
+        const headerStyle = {
+            margin: '20px',
         };
 
         return (
             <div>
-                <Card bg="dark" text="white" style={cardStyle} className="text-center" onClick={() => this.showSongs()}>
-                    <Card.Body>
-                        <br/>
-                        <br/>
-                        <Card.Title style={titleStyle}>Songs</Card.Title>
-                    </Card.Body>
-                </Card>
+                <h1 style={headerStyle}>{this.state.artistName}</h1>
+                <ArtistStatsCard title="Songs" callback={() => this.showSongs()}/>
             </div>
         );
     }

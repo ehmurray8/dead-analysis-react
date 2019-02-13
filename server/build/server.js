@@ -40,7 +40,8 @@ app.post('/artist/:artistId', function (req, res) {
   var artistId = req.params.artistId;
   (0, _load_setlists.default)(artistId, pool);
   return res.status(200).send("Downloading " + artistId + " data...");
-});
+}); // Get song data
+
 app.get('/artist/:artistId/',
 /*#__PURE__*/
 function () {
@@ -131,7 +132,23 @@ function () {
               }
             };
 
-            artists.sort(sortArtists);
+            if (artists) {
+              artists.sort(sortArtists);
+              artists.forEach(function (artist) {
+                pool.connect().then(function (client) {
+                  client.query('INSERT INTO "NameIds" VALUES($1, $2)', [artist.mbid, artist.name], function (queryError, response) {
+                    client.release();
+
+                    if (queryError) {
+                      console.log(queryError);
+                    }
+                  });
+                }).catch(function () {
+                  return console.log("Connection error");
+                });
+              });
+            }
+
             return _context2.abrupt("return", res.status(200).send(artists));
 
           case 7:
@@ -144,6 +161,39 @@ function () {
 
   return function (_x3, _x4) {
     return _ref2.apply(this, arguments);
+  };
+}()); // Get an artist's name from their id
+
+app.get('/artist/:artistId/name',
+/*#__PURE__*/
+function () {
+  var _ref3 = (0, _bluebird.coroutine)(
+  /*#__PURE__*/
+  regeneratorRuntime.mark(function _callee3(req, res) {
+    var artistId, queryResponse, artistName;
+    return regeneratorRuntime.wrap(function _callee3$(_context3) {
+      while (1) {
+        switch (_context3.prev = _context3.next) {
+          case 0:
+            artistId = req.params.artistId;
+            _context3.next = 3;
+            return pool.query("SELECT \"NameIds\".name FROM \"NameIds\" WHERE \"NameIds\".id = '".concat(artistId, "'"));
+
+          case 3:
+            queryResponse = _context3.sent;
+            artistName = queryResponse.rows && queryResponse.rows[0] && queryResponse.rows[0].name || "";
+            return _context3.abrupt("return", res.status(200).send(artistName));
+
+          case 6:
+          case "end":
+            return _context3.stop();
+        }
+      }
+    }, _callee3, this);
+  }));
+
+  return function (_x5, _x6) {
+    return _ref3.apply(this, arguments);
   };
 }());
 app.get('/artist/:artistId/venue-locations', function (req, res) {
