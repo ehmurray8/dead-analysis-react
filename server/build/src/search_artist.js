@@ -29,7 +29,6 @@ function searchArtist(artistName, pool) {
   return new Promise(function (resolve, reject) {
     setlistFm.get('?artistName=' + artistName).then(function (response) {
       var artists = response.data.artist;
-      console.log(artists);
 
       try {
         artists = Promise.all(artists.map(
@@ -72,6 +71,7 @@ function searchArtist(artistName, pool) {
         return artists;
       }
 
+      console.log(artists);
       resolve(artists);
     }).catch(function (err) {
       return reject(err);

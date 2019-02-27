@@ -1,11 +1,12 @@
 import express from 'express';
 import loadSetlists from "./src/load_setlists";
-import {DbConfig} from "./src/keys";
+import {DbConfig, mapsKey} from "./src/keys";
 import {Pool} from 'pg';
 import searchArtist from "./src/search_artist";
-import {getAllCovers, getAllOriginals, getAllSongs} from './src/database_queries';
+import {getAllCovers, getAllOriginals, getAllSetlistsBySong, getAllSongs, getSetlistInfo} from './src/database_queries';
 import "@babel/polyfill";
 import cors from 'cors';
+
 
 const app = express();
 
@@ -58,6 +59,7 @@ app.get('/artist/:artistId/', async (req, res) => {
 app.get('/search/artists/:artistName', async (req, res) => {
     const artistName = req.params.artistName;
     const artists = await searchArtist(artistName, pool).catch((error) => console.log(error));
+    console.log(artists);
     const sortArtists = (firstArtist, secondArtist) => {
         const first = firstArtist.name;
         const second = secondArtist.name;
@@ -77,16 +79,6 @@ app.get('/search/artists/:artistName', async (req, res) => {
     };
     if (artists) {
         artists.sort(sortArtists);
-        artists.forEach((artist) => {
-            pool.connect().then((client) => {
-                client.query('INSERT INTO "NameIds" VALUES($1, $2)', [artist.mbid, artist.name], (queryError, response) => {
-                    client.release();
-                    if (queryError) {
-                        console.log(queryError);
-                    }
-                });
-            }).catch(() => console.log("Connection error"));
-        });
     }
     return res.status(200).send(artists);
 });
@@ -94,9 +86,24 @@ app.get('/search/artists/:artistName', async (req, res) => {
 // Get an artist's name from their id
 app.get('/artist/:artistId/name', async (req, res) => {
     const artistId = req.params.artistId;
-    const queryResponse = await pool.query(`SELECT "NameIds".name FROM "NameIds" WHERE "NameIds".id = '${artistId}'`);
+    const queryResponse = await pool.query(`SELECT "Artist".name FROM "Artist" WHERE "Artist".mbid = '${artistId}'`);
     const artistName = (queryResponse.rows && queryResponse.rows[0] && queryResponse.rows[0].name) || "";
     return res.status(200).send(artistName);
+});
+
+// Get setlist info for a given song played by an artist
+app.get('/artist/:artistId/song/:songId', async (req, res) => {
+    const artistId = req.params.artistId;
+    const songId = req.params.songId;
+    const setlists = await getAllSetlistsBySong(pool, songId, artistId);
+    return res.status(200).send(setlists);
+});
+
+// Get information about a setlist
+app.get('/setlist/:setlistId', async (req, res) => {
+    const setlistId = req.params.setlistId;
+    const setlist = await getSetlistInfo(pool, setlistId);
+    return res.status(200).send(setlist);
 });
 
 app.get('/artist/:artistId/venue-locations', (req, res) => {

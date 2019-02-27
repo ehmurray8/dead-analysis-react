@@ -18,6 +18,8 @@ require("@babel/polyfill");
 
 var _cors = _interopRequireDefault(require("cors"));
 
+var _maps = require("@google/maps");
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _nonIterableSpread(); }
@@ -28,6 +30,13 @@ function _iterableToArray(iter) { if (Symbol.iterator in Object(iter) || Object.
 
 function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = new Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } }
 
+var client = (0, _maps.createClient)({
+  key: _keys.mapsKey,
+  Promise: Promise,
+  rate: {
+    limit: 50
+  }
+});
 var app = (0, _express.default)();
 var pool = (0, _pg.Pool)(_keys.DbConfig);
 app.use(_express.default.json());
@@ -112,6 +121,7 @@ function () {
 
           case 3:
             artists = _context2.sent;
+            console.log(artists);
 
             sortArtists = function sortArtists(firstArtist, secondArtist) {
               var first = firstArtist.name;
@@ -134,24 +144,11 @@ function () {
 
             if (artists) {
               artists.sort(sortArtists);
-              artists.forEach(function (artist) {
-                pool.connect().then(function (client) {
-                  client.query('INSERT INTO "NameIds" VALUES($1, $2)', [artist.mbid, artist.name], function (queryError, response) {
-                    client.release();
-
-                    if (queryError) {
-                      console.log(queryError);
-                    }
-                  });
-                }).catch(function () {
-                  return console.log("Connection error");
-                });
-              });
             }
 
             return _context2.abrupt("return", res.status(200).send(artists));
 
-          case 7:
+          case 8:
           case "end":
             return _context2.stop();
         }
@@ -177,7 +174,7 @@ function () {
           case 0:
             artistId = req.params.artistId;
             _context3.next = 3;
-            return pool.query("SELECT \"NameIds\".name FROM \"NameIds\" WHERE \"NameIds\".id = '".concat(artistId, "'"));
+            return pool.query("SELECT \"Artist\".name FROM \"Artist\" WHERE \"Artist\".mbid = '".concat(artistId, "'"));
 
           case 3:
             queryResponse = _context3.sent;
@@ -194,6 +191,71 @@ function () {
 
   return function (_x5, _x6) {
     return _ref3.apply(this, arguments);
+  };
+}()); // Get setlist info for a given song played by an artist
+
+app.get('/artist/:artistId/song/:songId',
+/*#__PURE__*/
+function () {
+  var _ref4 = (0, _bluebird.coroutine)(
+  /*#__PURE__*/
+  regeneratorRuntime.mark(function _callee4(req, res) {
+    var artistId, songId, setlists;
+    return regeneratorRuntime.wrap(function _callee4$(_context4) {
+      while (1) {
+        switch (_context4.prev = _context4.next) {
+          case 0:
+            artistId = req.params.artistId;
+            songId = req.params.songId;
+            _context4.next = 4;
+            return (0, _database_queries.getAllSetlistsBySong)(pool, songId, artistId);
+
+          case 4:
+            setlists = _context4.sent;
+            return _context4.abrupt("return", res.status(200).send(setlists));
+
+          case 6:
+          case "end":
+            return _context4.stop();
+        }
+      }
+    }, _callee4, this);
+  }));
+
+  return function (_x7, _x8) {
+    return _ref4.apply(this, arguments);
+  };
+}()); // Get information about a setlist
+
+app.get('/setlist/:setlistId',
+/*#__PURE__*/
+function () {
+  var _ref5 = (0, _bluebird.coroutine)(
+  /*#__PURE__*/
+  regeneratorRuntime.mark(function _callee5(req, res) {
+    var setlistId, setlist;
+    return regeneratorRuntime.wrap(function _callee5$(_context5) {
+      while (1) {
+        switch (_context5.prev = _context5.next) {
+          case 0:
+            setlistId = req.params.setlistId;
+            _context5.next = 3;
+            return (0, _database_queries.getSetlistInfo)(pool, setlistId);
+
+          case 3:
+            setlist = _context5.sent;
+            return _context5.abrupt("return", res.status(200).send(setlist));
+
+          case 5:
+          case "end":
+            return _context5.stop();
+        }
+      }
+    }, _callee5, this);
+  }));
+
+  return function (_x9, _x10) {
+    return _ref5.apply(this, arguments);
   };
 }());
 app.get('/artist/:artistId/venue-locations', function (req, res) {

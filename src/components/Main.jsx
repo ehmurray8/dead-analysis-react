@@ -5,6 +5,8 @@ import Artists from "./Artists";
 import Artist from "./Artist";
 import ArtistSearch from "./ArtistSearch";
 import Songs from "./Songs";
+import SongDetails from "./SongDetails";
+import Setlist from "./Setlist";
 
 
 const Main = () => {
@@ -16,6 +18,8 @@ const Main = () => {
 
             <Route exact path='/artists/:artistId' component={Artist}/>
             <Route exact path='/artists/:artistId/songs' component={Songs}/>
+            <Route exact path='/artists/:artistId/songs/:songId' component={SongDetails}/>
+            <Route exact path='/artists/:artistId/songs/:songId/setlists/:setlistId' component={Setlist}/>
 
 
             <Route exact path='/search/artists/:artistName' component={ArtistSearch}/>

@@ -8,3 +8,4 @@ export const DbConfig = {
     user: 'postgres',
     password: DbPassword,
 };
+

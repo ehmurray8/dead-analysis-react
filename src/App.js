@@ -9,6 +9,7 @@ class App extends Component {
         return (
             <div className="App">
                 <Header />
+                <div style={{height: '55px', width: '100%'}}/>
                 <Main />
             </div>
         );

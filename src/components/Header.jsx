@@ -26,8 +26,18 @@ class Header extends Component {
         const artistId = App.artistId;
         const artistName = App.artistName;
 
+        const headerStyle = {
+            position: 'fixed',
+            height: '55px',
+            top: 0,
+            right: 0,
+            left: 0,
+            display: 'block',
+            zIndex: 3000,
+        };
+
         return (
-            <div>
+            <div style={headerStyle}>
                <Navbar bg="dark" variant="dark">
                    <Navbar.Brand href="/" >Music Analysis</Navbar.Brand>
                    <Nav className='mr-auto'>
