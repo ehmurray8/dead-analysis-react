@@ -2,27 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="96e5e50c-1385-4a98-9f0d-fc19cfd7ba1b" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/src/components/Setlist.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/components/SongDetails.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/constants.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/build/server.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/build/server.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/build/server.js.map" beforeDir="false" afterPath="$PROJECT_DIR$/server/build/server.js.map" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/build/src/database_queries.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/build/src/database_queries.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/build/src/database_queries.js.map" beforeDir="false" afterPath="$PROJECT_DIR$/server/build/src/database_queries.js.map" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/build/src/keys.js.map" beforeDir="false" afterPath="$PROJECT_DIR$/server/build/src/keys.js.map" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/build/src/search_artist.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/build/src/search_artist.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/build/src/search_artist.js.map" beforeDir="false" afterPath="$PROJECT_DIR$/server/build/src/search_artist.js.map" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/server.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/server.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/src/database_queries.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/src/database_queries.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/src/keys.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/src/keys.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/src/search_artist.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/src/search_artist.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/App.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/App.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/Header.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Header.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/Main.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Main.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/Songs.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Songs.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/SongsList.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/SongsList.jsx" afterDir="false" />
     </list>
     <ignored path="$PROJECT_DIR$/.tmp/" />
     <ignored path="$PROJECT_DIR$/temp/" />
@@ -245,12 +225,12 @@
       <workItem from="1549214030241" duration="26130000" />
       <workItem from="1549492671464" duration="51957000" />
       <workItem from="1549857932016" duration="55213000" />
-      <workItem from="1551294441335" duration="13462000" />
+      <workItem from="1551294441335" duration="16349000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="181898000" />
+    <option name="totallyTimeSpent" value="184785000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="-1" width="1920" height="1031" extended-state="6" />
