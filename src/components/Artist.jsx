@@ -43,6 +43,10 @@ class Artist extends Component {
         this.state.history.push('/artists/' + this.artistId + "/songs");
     }
 
+    showLocations() {
+        this.state.history.push('/artists/' + this.artistId + '/locations');
+    }
+
     render() {
         const headerStyle = {
             margin: '20px',
@@ -52,6 +56,7 @@ class Artist extends Component {
             <div>
                 <h1 style={headerStyle}>{this.state.artistName}</h1>
                 <ArtistStatsCard title="Songs" callback={() => this.showSongs()}/>
+                <ArtistStatsCard title="Locations" callback={() => this.showLocations()}/>
             </div>
         );
     }

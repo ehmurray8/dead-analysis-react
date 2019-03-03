@@ -18,7 +18,7 @@ require("@babel/polyfill");
 
 var _cors = _interopRequireDefault(require("cors"));
 
-var _maps = require("@google/maps");
+var _constants = require("./src/constants");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -30,13 +30,6 @@ function _iterableToArray(iter) { if (Symbol.iterator in Object(iter) || Object.
 
 function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = new Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } }
 
-var client = (0, _maps.createClient)({
-  key: _keys.mapsKey,
-  Promise: Promise,
-  rate: {
-    limit: 50
-  }
-});
 var app = (0, _express.default)();
 var pool = (0, _pg.Pool)(_keys.DbConfig);
 app.use(_express.default.json());
@@ -258,19 +251,75 @@ function () {
     return _ref5.apply(this, arguments);
   };
 }());
-app.get('/artist/:artistId/venue-locations', function (req, res) {
-  var artistId = req.params.artistId;
-  return res.status(200).send("Ok");
-});
+app.get('/artist/:artistId/locations',
+/*#__PURE__*/
+function () {
+  var _ref6 = (0, _bluebird.coroutine)(
+  /*#__PURE__*/
+  regeneratorRuntime.mark(function _callee6(req, res) {
+    var artistId, venues, venueInfo, stateInfo, features, stateNumShows;
+    return regeneratorRuntime.wrap(function _callee6$(_context6) {
+      while (1) {
+        switch (_context6.prev = _context6.next) {
+          case 0:
+            artistId = req.params.artistId;
+            _context6.next = 3;
+            return (0, _database_queries.getAllVenuesByArtist)(pool, artistId);
+
+          case 3:
+            venues = _context6.sent;
+            venueInfo = {
+              "type": "geojson",
+              "data": {
+                "type": "FeatureCollection"
+              }
+            };
+            stateInfo = {};
+
+            _constants.usStates.forEach(function (x) {
+              return stateInfo[x] = 0;
+            });
+
+            features = [];
+            venues.filter(function (x) {
+              return x.country_code = "US";
+            }).forEach(function (venue) {
+              if (venue.state === "Washington, D.C.") {
+                venue.state = "District of Columbia";
+              }
+
+              stateInfo[venue.state] += 1;
+              features.push({
+                type: "Feature",
+                geometry: {
+                  type: "Point",
+                  coordinates: [venue.longitude, venue.latitude]
+                },
+                properties: {
+                  title: venue.name + " - " + venue.times_played + " shows",
+                  'marker-symbol': "monument"
+                }
+              });
+            });
+            venueInfo.features = features;
+            stateNumShows = Object.keys(stateInfo).map(function (key) {
+              return stateInfo[key];
+            });
+            return _context6.abrupt("return", res.status(200).send([venueInfo, stateNumShows]));
+
+          case 12:
+          case "end":
+            return _context6.stop();
+        }
+      }
+    }, _callee6, this);
+  }));
+
+  return function (_x11, _x12) {
+    return _ref6.apply(this, arguments);
+  };
+}());
 app.get('/artist/:artistId/typical-concert', function (req, res) {
-  var artistId = req.params.artistId;
-  return res.status(200).send("Ok");
-});
-app.get('/artist/:artistId/locations', function (req, res) {
-  var artistId = req.params.artistId;
-  return res.status(200).send("Ok");
-});
-app.get('/artist/:artistId/songs', function (req, res) {
   var artistId = req.params.artistId;
   return res.status(200).send("Ok");
 });

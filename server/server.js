@@ -1,11 +1,18 @@
 import express from 'express';
 import loadSetlists from "./src/load_setlists";
-import {DbConfig, mapsKey} from "./src/keys";
+import {DbConfig} from "./src/keys";
 import {Pool} from 'pg';
 import searchArtist from "./src/search_artist";
-import {getAllCovers, getAllOriginals, getAllSetlistsBySong, getAllSongs, getSetlistInfo} from './src/database_queries';
+import {
+    getAllCovers,
+    getAllOriginals,
+    getAllSetlistsBySong,
+    getAllSongs, getAllVenuesByArtist,
+    getSetlistInfo
+} from './src/database_queries';
 import "@babel/polyfill";
 import cors from 'cors';
+import {usStates} from "./src/constants";
 
 
 const app = express();
@@ -59,7 +66,6 @@ app.get('/artist/:artistId/', async (req, res) => {
 app.get('/search/artists/:artistName', async (req, res) => {
     const artistName = req.params.artistName;
     const artists = await searchArtist(artistName, pool).catch((error) => console.log(error));
-    console.log(artists);
     const sortArtists = (firstArtist, secondArtist) => {
         const first = firstArtist.name;
         const second = secondArtist.name;
@@ -106,22 +112,38 @@ app.get('/setlist/:setlistId', async (req, res) => {
     return res.status(200).send(setlist);
 });
 
-app.get('/artist/:artistId/venue-locations', (req, res) => {
+app.get('/artist/:artistId/locations', async (req, res) => {
     const artistId = req.params.artistId;
-    return res.status(200).send("Ok");
+    const venues = await getAllVenuesByArtist(pool, artistId);
+    const venueInfo = {
+        type: "FeatureCollection",
+    };
+    const stateInfo = {};
+    usStates.forEach(x => stateInfo[x] = 0);
+    const features = [];
+    venues.filter(x => x.country_code = "US").forEach(venue => {
+        if (venue.state === "Washington, D.C.") {
+            venue.state = "District of Columbia";
+        }
+        stateInfo[venue.state] += 1;
+        features.push({
+            type: "Feature",
+            geometry: {
+                type: "Point",
+                coordinates: [venue.longitude, venue.latitude],
+            },
+            properties: {
+                title: venue.name + " - " + venue.times_played + " shows",
+                'marker-symbol': "monument",
+            },
+        });
+    });
+    venueInfo.features = features;
+    const stateNumShows = Object.keys(stateInfo).map(key => stateInfo[key]);
+    return res.status(200).send([venueInfo, stateNumShows]);
 });
 
 app.get('/artist/:artistId/typical-concert', (req, res) => {
-    const artistId = req.params.artistId;
-    return res.status(200).send("Ok");
-});
-
-app.get('/artist/:artistId/locations', (req, res) => {
-    const artistId = req.params.artistId;
-    return res.status(200).send("Ok");
-});
-
-app.get('/artist/:artistId/songs', (req, res) => {
     const artistId = req.params.artistId;
     return res.status(200).send("Ok");
 });

@@ -237,7 +237,7 @@ class Setlist extends Component {
                     <BreadcrumbItem
                         href={"/artists/" + this.artistId + "/songs/" + this.songId}>{this.songName || "Back"}</BreadcrumbItem>
                 </Breadcrumb>
-                {this.state.setlists &&
+                { this.state.setlists &&
                     <div>
                         <h1 style={headerStyle}>{this.state.artistName + " - " + this.state.eventDate.toLocaleDateString()}</h1>
                         <h2 style={headerStyle}>{this.state.venueName + ", " + this.countryState()}</h2>

@@ -264,7 +264,7 @@ WHERE artist_ids.artist_id = "Artist".mbid
 GROUP BY "Artist".name
 ORDER BY count DESC
 
-** Remove DISTINCT to get total number of playes **
+** Remove DISTINCT to get total number of plays **
 
 
 # Get all setlists by Song

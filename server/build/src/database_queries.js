@@ -8,6 +8,7 @@ exports.getAllOriginals = getAllOriginals;
 exports.getAllCovers = getAllCovers;
 exports.getAllSetlistsBySong = getAllSetlistsBySong;
 exports.getSetlistInfo = getSetlistInfo;
+exports.getAllVenuesByArtist = getAllVenuesByArtist;
 
 function getAllSongs(pool, artistId) {
   return query(pool, "\n        SELECT \"Song\".name as name, COUNT(*) as times_played, \"Song\".id as song_id\n        FROM \"Song\", (\n            SElECT \"Set_Song\".song_id as id\n            FROM \"Set_Song\", (\n                SELECT \"Set\".id\n                FROM \"Set\", (\n                    SELECT \"Setlist\".id as id\n                    FROM \"Setlist\"\n                    WHERE \"Setlist\".artist_id = '".concat(artistId, "') as artists_setlists\n                WHERE \"Set\".setlist_id = artists_setlists.id) as set_ids\n            WHERE set_ids.id = \"Set_Song\".set_id ) as song_ids\n        WHERE \"Song\".id = song_ids.id\n        GROUP BY name, song_id\n        ORDER BY times_played DESC\n    "));
@@ -28,6 +29,10 @@ function getAllSetlistsBySong(pool, songId, artistId) {
 
 function getSetlistInfo(pool, setlistId) {
   return query(pool, "\n        SELECT \"Song\".name as song_name, \"Artist\".name as song_artist_name, songs.event_date, songs.tour_name, songs.url, songs.name as set_name, songs.infos, songs.artist_name, songs.city_name,\n            songs.state, songs.country_name, songs.venue_name, songs.info, songs.latitude, songs.longitude, songs.song_id\n        FROM \"Song\", \"Artist\", (\n            SELECT \"Set_Song\".song_id, infos.*\n            FROM \"Set_Song\", (\n                SELECT set_infos.*, \"Artist\".name as artist_name, \"Venue\".name as venue_name, \"City\".name as city_name, \"City\".state, \"City\".country_name, \"City\".latitude, \"City\".longitude\n                FROM \"Artist\", \"Venue\", \"City\", (\n                    SELECT sets_setlists.*\n                    FROM \"Venue\", (\n                        SELECT setlist.event_date, setlist.artist_id, setlist.tour_name, setlist.info, setlist.url, setlist.venue_id, \"Set\".id as set_id, \"Set\".*\n                        FROM \"Set\", (\n                            SELECT * \n                            FROM \"Setlist\" \n                            WHERE \"Setlist\".id = '".concat(setlistId, "') as setlist\n                        WHERE \"Set\".setlist_id = setlist.id) as sets_setlists\n                    WHERE \"Venue\".id = sets_setlists.venue_id) as set_infos\n                WHERE \"Artist\".mbid = set_infos.artist_id AND \"Venue\".id = set_infos.venue_id AND \"Venue\".city_id = \"City\".id) as infos\n            WHERE \"Set_Song\".set_id = infos.set_id) as songs\n        WHERE \"Song\".id = songs.song_id AND \"Song\".artist_id = \"Artist\".mbid\n    "));
+}
+
+function getAllVenuesByArtist(pool, artistId) {
+  return query(pool, "\n        SELECT \"venues\".*, \"City\".*\n        FROM \"City\", (\n            SELECT venue_info.venue_name, venue_info.city_id as city_id, COUNT(*) as times_played\n            FROM  (\n                SELECT \"Venue\".name as venue_name, \"Venue\".city_id as city_id\n                FROM \"Venue\", (\n                    SELECT \"Setlist\".venue_id as venue_id\n                    FROM \"Setlist\"\n                    WHERE \"Setlist\".artist_id = '".concat(artistId, "' ) as artist_setlists\n                WHERE artist_setlists.venue_id = \"Venue\".id ) as venue_info\n            GROUP BY venue_info.venue_name, venue_info.city_id ) as venues\n        WHERE venues.city_id = \"City\".id\n        ORDER BY venues.times_played DESC\n    "));
 }
 
 function query(pool, queryString) {

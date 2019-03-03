@@ -110,6 +110,25 @@ export function getSetlistInfo(pool, setlistId) {
 }
 
 
+export function getAllVenuesByArtist(pool, artistId) {
+    return query(pool, `
+        SELECT "venues".*, "City".*
+        FROM "City", (
+            SELECT venue_info.venue_name, venue_info.city_id as city_id, COUNT(*) as times_played
+            FROM  (
+                SELECT "Venue".name as venue_name, "Venue".city_id as city_id
+                FROM "Venue", (
+                    SELECT "Setlist".venue_id as venue_id
+                    FROM "Setlist"
+                    WHERE "Setlist".artist_id = '${artistId}' ) as artist_setlists
+                WHERE artist_setlists.venue_id = "Venue".id ) as venue_info
+            GROUP BY venue_info.venue_name, venue_info.city_id ) as venues
+        WHERE venues.city_id = "City".id
+        ORDER BY venues.times_played DESC
+    `);
+}
+
+
 function query(pool, queryString) {
     return new Promise((resolve, reject) => {
         pool.connect().then((client) => {
